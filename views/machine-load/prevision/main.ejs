@@ -1,0 +1,40 @@
+<main class="content-container-main">
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <td>sequencia</td>
+                <td>op</td>
+                <td>cliente</td>
+                <td>produto</td>
+                <td>quantidade pedido</td>
+                <td>quantidade produzido</td>
+                <td>previsao</td>
+            </tr>
+        </thead>
+        <tbody>
+            <% if(typeof prevision !=='undefined' ){ %>
+                <% prevision.newPrevisions.forEach(prev=> { %>
+                    <tr>
+                        <td
+                        <%= prev.sequencia == 1 ? 'class='+'filtered':"";%>
+                        <%= 'id='+prev.sequencia %>
+                        ><%= prev.sequencia %></td>
+                        <td><%= prev.ordemProducao %></td>
+                        <td><%= prev.cliente %></td>
+                        <td><%= prev.produto %></td>
+                        <td><%= prev.quantidadePedido %></td>
+                        <td><%= prev.quantidadeProduzido %></td>
+                        <td><%= new Date(prev.previsaoFinalProducao).toISOString() %></td>
+                    </tr>
+
+                <% }); %>
+             <% } %>
+        </tbody>
+    </table>
+    <button class="btn btn-primary" onclick="elementos()">CALCULAR</button>
+</main>
+<script>
+    function elementos(){
+        console.log(document.querySelector(".table"));
+    }
+</script>

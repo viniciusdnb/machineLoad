@@ -1,0 +1,45 @@
+.container-body{
+    display: grid;
+    grid-template-columns: 20% 80%;
+    grid-template-rows: 100%;
+    height: 100vh;
+   
+   
+}
+
+.container-aside{
+    border: 1px solid black;
+    height: 100%;
+    width: 100%;
+    
+    
+}
+
+.container-main{
+    border: 1px solid black;
+    height: 100%;
+    width: 100%;
+    display: grid;
+    grid-template-rows: 10% 80% 10%;
+}
+
+.container-header{
+    border: 1px solid black;
+    height: 100%;
+    width: 100%;
+    background-color: rgb(230, 164, 164);
+}
+
+.content-container-main{
+    border: 1px solid black;
+    height: 100%;
+    width: 100%;
+    background-color: red;
+}
+
+.container-footer{
+    border: 1px solid black;
+    height: 100%;
+    width: 100%;
+    background-color: rgb(217, 255, 0);
+}
