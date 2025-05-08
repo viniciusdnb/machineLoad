@@ -25,7 +25,7 @@
                     <td><%= prevision[key].produto %></td>
                     <td><%= prevision[key].orderQuantity %></td>
                     <td><%= prevision[key].quantityProduced %></td>
-                    <td><%= prevision[key].previsionStart.toLocaleString() %></td>
+                    <td><%= prevision[key].previsionStart.toLocaleString() == "" ? new Date().toLocaleString():prevision[key].previsionStart.toLocaleString()  %></td>
                     <td><%= prevision[key].previsionEnd.toLocaleString() %></td>
                     
                    </tr>
