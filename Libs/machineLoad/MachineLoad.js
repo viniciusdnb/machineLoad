@@ -1,97 +1,107 @@
-class MachineLoad{
-    constructor(configWork, dataDB){
+class MachineLoad
+{
+    constructor(fileDataDB, fileConfig)
+    {
+        this.dataDB = JSON.parse(fileDataDB);
+        this.config = JSON.parse(fileConfig);
+        this.dateTimeNow = new Date();
+        this.InterfaceCore = new InterfaceCore(this.config);
         
-        this.configWork = configWork;
-        this.dataDB = dataDB;
     }
 
-    timeRemainingProduction(queueKey)
+    timeStampRemainigProduction(machine,sequence)
     {
-        let orderQuantity = parseInt(this.dataDB.fila[queueKey].quantidadePedido);
-        let quantityProduced = parseInt(this.dataDB.fila[queueKey].quantidadeProduzido);
-        let bpm = this.dataDB.fila[queueKey].bpm;
+        let orderQuantity = parseInt(this.dataDB.queue[machine].queueProducts[sequence].orderQuantity);
+        let quantityProduced = parseInt(this.dataDB.queue[machine].queueProducts[sequence].quantityProduced);
+        let bpm = this.verifyBpm(machine, sequence);
         let balanceProduced = orderQuantity - quantityProduced;
         let minutesRemainig = parseInt(balanceProduced / bpm);
-        var lunch = 0;
-        if(this.configWork.lunch){
-            minutesRemainig += 60;
-            lunch = 60;
-        }
-        //verifica se a quantidade de tempo e maior que as 10 horas de trabalho
-        if (minutesRemainig > 600){
-            var realtime = minutesRemainig + ((minutesRemainig / 600)*600+lunch);
-        }else{
-            var realtime = minutesRemainig;
-        }
-
+        let lunchBreak = this.verifyLanchBreak();
         
-        return realtime *60 *1000 ;
+        //converte os minutos para inteiro de timestamp
+        return (minutesRemainig + lunchBreak) * 60 * 1000;
+        
     }
 
-    getPrevision(){
-        const Core = require('./Core');
-        var key = 0;//chave do primeiro item
-        var dataAtual = new Date();
-        switch (dataAtual.getDay()) {
-            case 0:
-                dataAtual.setDate(dataAtual.getDate()+1)
-                dataAtual.setHours(4);
-                dataAtual.setMinutes(0);
-                break;
-            case 6:
-                dataAtual.setDate(dataAtual.getDate()+2)
-                dataAtual.setHours(0);
-                dataAtual.setMinutes(4);
-                break;
+    getPrevision(machine)
+    {
+        //seta o horario atual para o primeiro item da simulação
+        this.setPrevisionFirstItem(machine);
+        
+        //pega a quantidade de objetos dentro do objeto
+        //a forma é diferente do array
+
+        var numbersQueueProducts = Object.keys(this.dataDB.queue[machine].queueProducts).length;
+        var queueKey = 0;
+
+        for(let i = 1; i < numbersQueueProducts; i++)
+        {
+            var dataTimePrevisionPrevious = new Date(this.dataDB.queue[machine].queueProducts[queueKey].previsionEnd);
             
+            this.dataDB.queue[machine].queueProducts[i].previsionStart = dataTimePrevisionPrevious;
+
+            var newPrevision = this.setPrevisions(machine,i, dataTimePrevisionPrevious);
+
+            this.dataDB.queue[machine].queueProducts[i].previsionEnd = newPrevision;
+
+            queueKey++;
+
         }
-        this.dataDB.fila[key].dataHoraAtual = dataAtual;
-        var dateTimeNow = new Date(this.dataDB.fila[key].dataHoraAtual);
-        var newTimeRemaing = new Date(new Date(dateTimeNow).getTime() + this.timeRemainingProduction(0));
-        this.dataDB.fila[key].previsaoFinalProducao = new Core(this.configWork, newTimeRemaing).nextDate().newPrevision;
+
+       return this.dataDB;
+    }
+
+    setPrevisions(machine, queueKey, dateTimeNow)
+    {
+        var timeRemainingProduction = this.timeStampRemainigProduction(machine, queueKey);
+        var dateTimeNowSimulation = this.getDateTimeNowSimulation(dateTimeNow);
+        var newDateTimePrevision = new Date(dateTimeNowSimulation.getTime()+timeRemainingProduction);
         
+        return this.InterfaceCore.getNewPrevision(newDateTimePrevision);
+    }
+    setPrevisionFirstItem(machine)
+    {
+        var dateTimeNowSimulation = this.getDateTimeNowSimulation()
         
-     
-        for(let i = 1; i < this.dataDB.fila.length; i++){
-            var dataTimePrevious = new Date(this.dataDB.fila[key].previsaoFinalProducao);
-            var newTimeRemaing = new Date(new Date(dataTimePrevious).getTime() + this.timeRemainingProduction(i));
-            this.dataDB.fila[i].previsaodataHoraInicioProducao = this.dataDB.fila[key].previsaoFinalProducao;
-            
-            var newPrevision = new Date(new Core(this.configWork, newTimeRemaing).nextDate().newPrevision);
-           
-           
-            //verifica se o dia anterior é final de semana se for acresenta mais horas na previsao
+        this.dataDB.queue[machine].queueProducts[0].previsionEnd = this.setPrevisions(machine, 0, dateTimeNowSimulation);
+        
+    }
 
-            var sunday = new Date(newPrevision.setDate(newPrevision.getDate()-1));
-            if(sunday.getDay()==0){
-                newTimeRemaing = new Date(new Date(dataTimePrevious).getTime() + this.timeRemainingProduction(i)+(3000*60*1000));
-            }
-
-
-            this.dataDB.fila[i].previsaoFinalProducao = new Core(this.configWork, newTimeRemaing).nextDate().newPrevision;
-            
-            key++;
-         
+    getDateTimeNowSimulation(dateTimeNow = null)
+    {
+        if(dateTimeNow == null){
+            return new Date(this.InterfaceCore.getNewPrevision(this.dateTimeNow));
         }
-       
+           
+        return new Date(this.InterfaceCore.getNewPrevision(dateTimeNow));
 
-       return {"newPrevisions": this.dataDB.fila}
+    }
 
+    verifyLanchBreak()
+    {
+        if(this.config.lunchBreak.considerLunchBreak)
+        {
+            return parseInt(this.config.lunchBreak.inTtimeMinutesLunch);
+        }
+            return 0;
         
-     
+    }
+    
+    verifyBpm(machine, sequence)
+    {
+        if(this.dataDB.queue[machine].considerBPMMachine)
+        {
+            var bpm = this.dataDB.queue[machine].bpm;
+
+        }else{
+
+            var bpm = this.dataDB.queue[machine].queueProducts[sequence].bpmProduct;
+    
+        }
+        
+        return bpm;
     }
 }
 
+
 module.exports = MachineLoad;
-/*
-const Core = require("./Core")
-const configWork  = require("./configWork");
-const dataDB = require("./dataDB");
-
-var test = new MachineLoad(configWork, dataDB);
-
-console.log(test.setPrevision());*/
-
-/*var test = new Core(configWork,new Date("2025-05-05T12:00:00"))
-
-console.log(test.nextDate());*/
